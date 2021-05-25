@@ -37,8 +37,8 @@ class SquantsJsonSupportTest extends AnyFreeSpec with TableDrivenPropertyChecks 
       val inputs =
         Table(
           ("money", "amount", "currency"),
-          (EUR(1), "1.0", "EUR"),
-          (EUR(-1), "-1.0", "EUR"),
+          (EUR(1), "1", "EUR"),
+          (EUR(-1), "-1", "EUR"),
           (EUR(100.20), "100.2", "EUR"),
           (EUR(100.24), "100.24", "EUR"),
           (EUR(100.243), "100.243", "EUR"),

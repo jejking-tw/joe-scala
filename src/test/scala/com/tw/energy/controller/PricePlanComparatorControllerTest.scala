@@ -36,9 +36,9 @@ class PricePlanComparatorControllerTest extends AnyFlatSpec with Matchers with S
     meterReadingService.storeReadings(MeterReadings(smartMeterId, List(electricityReading, otherReading)))
 
     val expectedPricePlanCost: Map[String, Money] = Map(
-      pricePlan1Id -> EUR(BigDecimal("100.00")),
-      pricePlan2Id -> EUR(BigDecimal("10.00")),
-      pricePlan3Id -> EUR(BigDecimal("20.00")),
+      pricePlan1Id -> EUR(BigDecimal("100")),
+      pricePlan2Id -> EUR(BigDecimal("10")),
+      pricePlan3Id -> EUR(BigDecimal("20")),
     )
 
     val expected = PricePlanCosts(Some(pricePlan1Id), expectedPricePlanCost)
@@ -54,9 +54,9 @@ class PricePlanComparatorControllerTest extends AnyFlatSpec with Matchers with S
     meterReadingService.storeReadings(MeterReadings(smartMeterId, List(electricityReading, otherReading)))
 
     val expectedPricePlanCost: List[Map[String, Money]] = List(
-      Map(pricePlan2Id -> EUR(BigDecimal("9.50"))),
-      Map(pricePlan3Id -> EUR(BigDecimal("19.00"))),
-      Map(pricePlan1Id -> EUR(BigDecimal("95.00")))
+      Map(pricePlan2Id -> EUR(BigDecimal("9.5"))),
+      Map(pricePlan3Id -> EUR(BigDecimal("19"))),
+      Map(pricePlan1Id -> EUR(BigDecimal("95")))
     )
 
     Get(s"/price-plans/recommend/$smartMeterId") ~> controller.routes ~> check {
@@ -71,9 +71,9 @@ class PricePlanComparatorControllerTest extends AnyFlatSpec with Matchers with S
 
     val limit = 2
     val expectedPricePlanCost: List[Map[String, Money]] = List(
-      Map(pricePlan2Id -> EUR(BigDecimal("9.3750"))),
+      Map(pricePlan2Id -> EUR(BigDecimal("9.375"))),
       //TODO: how to properly handle trailing zeros in decoding/encoding?
-      Map(pricePlan3Id -> EUR(BigDecimal("18.7500")))
+      Map(pricePlan3Id -> EUR(BigDecimal("18.75")))
     )
 
     Get(s"/price-plans/recommend/$smartMeterId?limit=$limit") ~> controller.routes ~> check {
@@ -88,9 +88,9 @@ class PricePlanComparatorControllerTest extends AnyFlatSpec with Matchers with S
 
     val limit = 5
     val expectedPricePlanCost: List[Map[String, Money]] = List(
-      Map(pricePlan2Id -> EUR(BigDecimal("14.00"))),
-      Map(pricePlan3Id -> EUR(BigDecimal("28.00"))),
-      Map(pricePlan1Id -> EUR(BigDecimal("140.00"))),
+      Map(pricePlan2Id -> EUR(BigDecimal("14"))),
+      Map(pricePlan3Id -> EUR(BigDecimal("28"))),
+      Map(pricePlan1Id -> EUR(BigDecimal("140"))),
     )
 
     Get(s"/price-plans/recommend/$smartMeterId?limit=$limit") ~> controller.routes ~> check {

@@ -5,6 +5,7 @@ import squants.energy.Power
 import squants.market.{Money, MoneyContext, defaultMoneyContext}
 
 import java.time.Instant
+import scala.math.BigDecimal.RoundingMode
 
 case class ElectricityReading(time: Instant, reading: Power)
 
@@ -26,7 +27,7 @@ trait SquantsJsonSupport {
   }
 
   implicit val encodeMoney: Encoder[Money] = (money: Money) => Json.obj(
-    ("amount", Json.fromBigDecimal(money.amount)),
+    ("amount", Json.fromBigDecimal(money.amount.underlying.stripTrailingZeros)),
     ("currency", Json.fromString(money.currency.code))
   )
 
