@@ -24,5 +24,14 @@ class PricePlanServiceTest extends AnyFlatSpec with Matchers {
     actual should be(EUR(BigDecimal("0.288")))
   }
 
+  "calculateCost" should "not blow up if there are no readings" in {
+    val now = Instant.now()
+    val actual = PricePlanService.calculateCost(
+      List(),
+      PricePlan("test-plan", "energy-supplier-test", EUR(0.3)/KilowattHours(1))
+    )
+    actual should be(EUR(BigDecimal("0")))
+  }
+
 
 }

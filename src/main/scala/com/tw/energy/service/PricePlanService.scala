@@ -30,6 +30,10 @@ object PricePlanService {
   }
 
   def calculateCost(readings: Seq[ElectricityReading], plan: PricePlan): Money = {
+    if (readings.isEmpty) {
+      return EUR(0)
+    }
+
     val average: Power = calculateAverageReading(readings)
     val timeElapsed: Time = calculateTimeElapsed(readings)
     val energyConsumption : Energy = average * timeElapsed
