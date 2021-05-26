@@ -8,6 +8,8 @@ import squants.energy.{Energy, Kilowatts, Power}
 import squants.market.{EUR, Money}
 import squants.time.{Hours, Time}
 
+import scala.util.Try
+
 class PricePlanService(pricePlans: Seq[PricePlan], meterReadingService: MeterReadingService) {
 
   def consumptionCostByPricePlan(smartMeterId: SmartMeterId): Option[Map[PlanName, Money]] = {
@@ -23,10 +25,15 @@ object PricePlanService {
     Kilowatts(readings.map(_.reading.toKilowatts).sum / readings.length)
   }
 
-  private def calculateTimeElapsed(electricityReadings: Seq[ElectricityReading]): Time = {
-    val first = electricityReadings.minBy(_.time)
-    val last = electricityReadings.maxBy(_.time)
-    Hours(java.time.Duration.between(first.time, last.time).getSeconds / 3600.0)
+  private def calculateTimeElapsed(electricityReadings: Seq[ElectricityReading]) : Time = {
+    val maybeTimeElapsed = for {
+      first <- Try { electricityReadings.minBy(_.time ) }
+      last <- Try { electricityReadings.maxBy(_.time) }
+    } yield {
+      Hours(java.time.Duration.between(first.time, last.time).getSeconds / 3600.0)
+    }
+
+    maybeTimeElapsed.getOrElse(Hours(0))
   }
 
   def calculateCost(readings: Seq[ElectricityReading], plan: PricePlan): Money = {
