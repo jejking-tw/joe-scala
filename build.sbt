@@ -26,4 +26,8 @@ libraryDependencies += "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVers
 libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test //required by akka-http-testkit
 libraryDependencies += "org.typelevel"  %% "squants"  % "1.6.0"
 
+libraryDependencies += "org.typelevel" %% "cats-effect" % "3.1.1"
+libraryDependencies += "com.codecommit" % "cats-effect-testing-scalatest_3" % "0.5.4" % Test
+addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
+
 scalacOptions ++= Seq("-deprecation", "-feature")
