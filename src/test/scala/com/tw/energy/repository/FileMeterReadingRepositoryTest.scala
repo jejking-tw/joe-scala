@@ -4,7 +4,8 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
+import java.util.Comparator
 
 class FileMeterReadingRepositoryTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
@@ -16,7 +17,10 @@ class FileMeterReadingRepositoryTest extends AnyFlatSpec with Matchers with Befo
   }
 
   override def afterAll(): Unit = {
-    Files.delete(tempDir)
+    Files.walk(tempDir)
+      .sorted(Comparator.reverseOrder[Path]())
+      .map(_.toFile)
+      .forEach(file => file.delete())
   }
 
   "repository" should "return None if no file for the meter id can be located" in {
@@ -29,6 +33,7 @@ class FileMeterReadingRepositoryTest extends AnyFlatSpec with Matchers with Befo
 
   it should "return an empty sequence if the file exists but is empty" in {
     val fileBasedRepository = new FileMeterReadingRepository(tempDir)
+    Files.createFile(tempDir.resolve("meter-2"))
 
     val ret = fileBasedRepository.getReadings("meter-2")
 
