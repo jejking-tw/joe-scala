@@ -6,28 +6,24 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.energy.Kilowatts
 
-import java.io.{BufferedWriter, FileWriter}
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Path}
 import java.time.Instant
 import java.util.Comparator
 
 class FileMeterReadingRepositoryTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
-  var tempDir: Path = null
-
-  override def beforeAll(): Unit = {
-    import java.nio.file.Files
-    tempDir = Files.createTempDirectory("meter-reading-repository")
-  }
-
-  override def afterAll(): Unit = {
-    Files.walk(tempDir)
+  def withTempDirectory(testCode: Path => Any): Unit = {
+    val directory = Files.createTempDirectory("meter-reading-repository")
+    try {
+      testCode(directory)
+    }
+    finally Files.walk(directory)
       .sorted(Comparator.reverseOrder[Path]())
       .map(_.toFile)
       .forEach(file => file.delete())
   }
 
-  "repository" should "return None if no file for the meter id can be located" in {
+  "repository" should "return None if no file for the meter id can be located" in withTempDirectory{ tempDir =>
     val fileBasedRepository = new FileMeterReadingRepository(tempDir)
 
     val ret = fileBasedRepository.getReadings("meter-1")
@@ -35,7 +31,7 @@ class FileMeterReadingRepositoryTest extends AnyFlatSpec with Matchers with Befo
     ret shouldBe Option.empty
   }
 
-  it should "return an empty sequence if the file exists but is empty" in {
+  it should "return an empty sequence if the file exists but is empty" in withTempDirectory{ tempDir =>
     val fileBasedRepository = new FileMeterReadingRepository(tempDir)
     Files.createFile(tempDir.resolve("meter-2"))
 
@@ -44,7 +40,7 @@ class FileMeterReadingRepositoryTest extends AnyFlatSpec with Matchers with Befo
     ret shouldBe Option(Seq.empty)
   }
 
-  it should "return a sequence of one electricity reading given a file with one correctly formatted entry" in {
+  it should "return a sequence of one electricity reading given a file with one correctly formatted entry" in withTempDirectory{ tempDir =>
     val fileBasedRepository = new FileMeterReadingRepository(tempDir)
     val meter3Path = Files.createFile(tempDir.resolve("meter-3"))
     Files.write(meter3Path, "1624289430,1234.56".getBytes())
