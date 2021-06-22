@@ -1,8 +1,7 @@
 package com.tw.energy.repository
-import cats.effect.IO
-import cats.effect.unsafe.implicits.global
-import com.tw.energy.domain.{ElectricityReading, MeterReadings}
+import cats.effect.kernel.Sync
 import com.tw.energy.domain.StringTypes.SmartMeterId
+import com.tw.energy.domain.{ElectricityReading, MeterReadings}
 import com.tw.energy.repository.FileMeterReadingRepository.parseLine
 import squants.energy.Kilowatts
 
@@ -11,15 +10,15 @@ import java.time.Instant
 import scala.jdk.CollectionConverters._
 
 class FileMeterReadingRepository(private val path: Path) extends MeterReadingRepository {
-  override def getReadings(smartMeterId: SmartMeterId): Option[Seq[ElectricityReading]] = {
-    IO {
+  override def getReadings[F[_]:Sync](smartMeterId: SmartMeterId): F[Option[Seq[ElectricityReading]]] = {
+    Sync[F].delay{
       val meterFilePath = path.resolve(smartMeterId)
       if (Files.exists(meterFilePath)) {
         Some(Files.readAllLines(meterFilePath).asScala.map(parseLine(_)).toSeq)
       } else {
         None
       }
-    }.unsafeRunSync()
+    }
   }
   // TODO - look for a file with the name of the smartMeterId underneath our directory path
   // open it, read all the lines
@@ -28,7 +27,7 @@ class FileMeterReadingRepository(private val path: Path) extends MeterReadingRep
   // if it does not exist, return None
   // and if the parsing fails.... what then?
 
-  override def storeReadings(meterReadings: MeterReadings): Unit = ???
+  override def storeReadings[F[_]:Sync](meterReadings: MeterReadings): F[Unit] = ???
 
 
 
