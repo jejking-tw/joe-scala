@@ -53,28 +53,31 @@ class FileMeterReadingRepositoryTest extends AnyFlatSpec with Matchers with Befo
   }
 
   it should "create a new file for a meter given a new reading and no existing file" in {
-    val fileBasedRepository = new FileMeterReadingRepository(tempDir)
-    val meter4Path = Files.createFile(tempDir.resolve("meter-4"))
+    withTempDirectory { tempDir =>
+      val fileBasedRepository = new FileMeterReadingRepository(tempDir)
+      val meter4Path = Files.createFile(tempDir.resolve("meter-4"))
 
-    val electricityReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
+      val electricityReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
 
-    fileBasedRepository.storeReadings(MeterReadings("meter-4", List(electricityReading)))
+      fileBasedRepository.storeReadings(MeterReadings("meter-4", List(electricityReading)))
 
-    Files.readAllLines(meter4Path).asScala shouldBe Seq("1624289430,1234.56")
-
+      Files.readAllLines(meter4Path).asScala shouldBe Seq("1624289430,1234.56")
+    }
   }
 
   it should "append to a file for a given meter given a new reading and an existing file" in {
-    val fileBasedRepository = new FileMeterReadingRepository(tempDir)
-    val meter5Path = Files.createFile(tempDir.resolve("meter-5"))
+    withTempDirectory { tempDir =>
+      val fileBasedRepository = new FileMeterReadingRepository(tempDir)
+      val meter5Path = Files.createFile(tempDir.resolve("meter-5"))
 
-    val electricityReadings = Seq(ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56)), ElectricityReading(Instant.ofEpochSecond(1624375589), Kilowatts(98.76)))
+      val electricityReadings = Seq(ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56)), ElectricityReading(Instant.ofEpochSecond(1624375589), Kilowatts(98.76)))
 
-    Files.writeString(meter5Path, "1624289430,1234.56") // append first reading
+      Files.writeString(meter5Path, "1624289430,1234.56") // append first reading
 
-    fileBasedRepository.storeReadings(MeterReadings("meter-5", electricityReadings.tail.toList))
+      fileBasedRepository.storeReadings(MeterReadings("meter-5", electricityReadings.tail.toList))
 
-    fileBasedRepository.getReadings("meter-5") shouldBe Some(electricityReadings)
+      fileBasedRepository.getReadings("meter-5") shouldBe Some(electricityReadings)
+    }
   }
 
   "the line parser" should "parse a string representing a line to an electricity reading" in {
