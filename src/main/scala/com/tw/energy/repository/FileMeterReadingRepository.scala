@@ -3,10 +3,10 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import com.tw.energy.domain.{ElectricityReading, MeterReadings}
 import com.tw.energy.domain.StringTypes.SmartMeterId
-import com.tw.energy.repository.FileMeterReadingRepository.parseLine
+import com.tw.energy.repository.FileMeterReadingRepository.{parseLine, toLine}
 import squants.energy.Kilowatts
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, StandardOpenOption}
 import java.time.Instant
 import scala.jdk.CollectionConverters._
 
@@ -28,13 +28,34 @@ class FileMeterReadingRepository(private val path: Path) extends MeterReadingRep
   // if it does not exist, return None
   // and if the parsing fails.... what then?
 
-  override def storeReadings(meterReadings: MeterReadings): Unit = ???
+  override def storeReadings(meterReadings: MeterReadings): Unit = {
+    def fileHasBeenWrittenToAlready(meterFilePath: Path) = {
+      Files.size(meterFilePath) > 0
+    }
+
+    def appendNewLine(meterFilePath: Path) = {
+      Files.writeString(meterFilePath, System.lineSeparator(), StandardOpenOption.APPEND)
+    }
+
+    IO {
+      val meterFilePath = path.resolve(meterReadings.smartMeterId)
+      val lines = meterReadings.electricityReadings.map(toLine(_))
+      if (fileHasBeenWrittenToAlready(meterFilePath)) {
+        appendNewLine(meterFilePath)
+      }
+      Files.write(meterFilePath, lines.asJava, StandardOpenOption.APPEND)
+
+    }.unsafeRunSync()
+  }
 
 
 
 }
 
 object FileMeterReadingRepository {
+
+  def toLine(reading: ElectricityReading): String = s"${reading.time.getEpochSecond},${reading.reading.value}"
+
 
   val line = raw"(.+),(.+)".r
 
