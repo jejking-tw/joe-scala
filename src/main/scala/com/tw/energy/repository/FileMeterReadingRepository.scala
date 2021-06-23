@@ -54,7 +54,7 @@ class FileMeterReadingRepository(private val path: Path) extends MeterReadingRep
 
 object FileMeterReadingRepository {
 
-  def toLine(reading: ElectricityReading): String = s"${reading.time.getEpochSecond},${reading.reading.value}"
+  def toLine(reading: ElectricityReading): String = s"${reading.time.getEpochSecond},${reading.reading.toKilowatts}"
 
 
   val line = raw"(.+),(.+)".r

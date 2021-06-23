@@ -4,7 +4,7 @@ import com.tw.energy.domain.{ElectricityReading, MeterReadings}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import squants.energy.Kilowatts
+import squants.energy.{Kilowatts, Watts}
 
 import java.nio.file.{Files, Path}
 import java.time.Instant
@@ -90,6 +90,13 @@ class FileMeterReadingRepositoryTest extends AnyFlatSpec with Matchers with Befo
   "the line serializer" should "serialize an electricity reading to a string" in {
     val expectedSerializedForm = "1624289430,1234.56"
     val reading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
+
+    FileMeterReadingRepository.toLine(reading) shouldBe expectedSerializedForm
+  }
+
+  it should "convert power readings to kW" in {
+    val expectedSerializedForm = "1624289430,1234.56"
+    val reading = ElectricityReading(Instant.ofEpochSecond(1624289430), Watts(1234.56 * 1000))
 
     FileMeterReadingRepository.toLine(reading) shouldBe expectedSerializedForm
   }
