@@ -8,13 +8,14 @@ import squants.energy.Kilowatts
 import java.nio.file.{Files, Path}
 import java.time.Instant
 import scala.jdk.CollectionConverters._
+import scala.util.matching.Regex
 
 class FileMeterReadingRepository(private val path: Path) extends MeterReadingRepository {
   override def getReadings[F[_]:Sync](smartMeterId: SmartMeterId): F[Option[Seq[ElectricityReading]]] = {
     Sync[F].delay{
       val meterFilePath = path.resolve(smartMeterId)
       if (Files.exists(meterFilePath)) {
-        Some(Files.readAllLines(meterFilePath).asScala.map(parseLine(_)).toSeq)
+        Some(Files.readAllLines(meterFilePath).asScala.map(parseLine).toSeq)
       } else {
         None
       }
@@ -35,7 +36,7 @@ class FileMeterReadingRepository(private val path: Path) extends MeterReadingRep
 
 object FileMeterReadingRepository {
 
-  val line = raw"(.+),(.+)".r
+  val line: Regex = raw"(.+),(.+)".r
 
   def parseLine(input: String): ElectricityReading = {
     input match {
