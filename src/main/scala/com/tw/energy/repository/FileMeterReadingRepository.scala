@@ -1,25 +1,26 @@
 package com.tw.energy.repository
 import cats.effect.IO
+import cats.effect.kernel.Sync
 import cats.effect.unsafe.implicits.global
 import com.tw.energy.domain.{ElectricityReading, MeterReadings}
 import com.tw.energy.domain.StringTypes.SmartMeterId
-import com.tw.energy.repository.FileMeterReadingRepository.parseLine
+import com.tw.energy.repository.FileMeterReadingRepository.{parseLine, toLine}
 import squants.energy.Kilowatts
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, StandardOpenOption}
 import java.time.Instant
 import scala.jdk.CollectionConverters._
 
 class FileMeterReadingRepository(private val path: Path) extends MeterReadingRepository {
-  override def getReadings(smartMeterId: SmartMeterId): Option[Seq[ElectricityReading]] = {
-    IO {
+  override def getReadings[F[_]:Sync](smartMeterId: SmartMeterId): F[Option[Seq[ElectricityReading]]] = {
+    Sync[F].delay{
       val meterFilePath = path.resolve(smartMeterId)
       if (Files.exists(meterFilePath)) {
-        Some(Files.readAllLines(meterFilePath).asScala.map(parseLine(_)).toSeq)
+        Some(Files.readAllLines(meterFilePath).asScala.map(parseLine).toSeq)
       } else {
         None
       }
-    }.unsafeRunSync()
+    }
   }
   // TODO - look for a file with the name of the smartMeterId underneath our directory path
   // open it, read all the lines
@@ -28,7 +29,7 @@ class FileMeterReadingRepository(private val path: Path) extends MeterReadingRep
   // if it does not exist, return None
   // and if the parsing fails.... what then?
 
-  override def storeReadings(meterReadings: MeterReadings): Unit = {
+  override def storeReadings[F[_]:Sync](meterReadings: MeterReadings): F[Unit] = {
     def fileHasBeenWrittenToAlready(meterFilePath: Path) = {
       Files.size(meterFilePath) > 0
     }
@@ -37,15 +38,15 @@ class FileMeterReadingRepository(private val path: Path) extends MeterReadingRep
       Files.writeString(meterFilePath, System.lineSeparator(), StandardOpenOption.APPEND)
     }
 
-    IO {
+    Sync[F].delay {
       val meterFilePath = path.resolve(meterReadings.smartMeterId)
       val lines = meterReadings.electricityReadings.map(toLine(_))
       if (fileHasBeenWrittenToAlready(meterFilePath)) {
         appendNewLine(meterFilePath)
       }
       Files.write(meterFilePath, lines.asJava, StandardOpenOption.APPEND)
-
-    }.unsafeRunSync()
+      ()
+    }
   }
 
 

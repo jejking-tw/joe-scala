@@ -1,28 +1,33 @@
 package com.tw.energy.repository
 
-import com.tw.energy.domain.ElectricityReading
+import cats.effect.testing.scalatest.AsyncIOSpec
+import cats.effect.{IO, Resource}
+import com.tw.energy.domain.{ElectricityReading, MeterReadings}
+import org.scalatest
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import squants.energy.Kilowatts
 
+import java.io.File.TempDirectory
 import java.nio.file.{Files, Path}
 import java.time.Instant
 import java.util.Comparator
+import scala.jdk.CollectionConverters._
 
 class FileMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec with Matchers with BeforeAndAfterAll {
 
   def withTempDirectory[F](testCode: Resource[IO, Path] => F): F = {
 
     val tempDirResource = Resource.make(
-      IO.blocking(Files.createTempDirectory("meter-reading-repository"))
+    IO.blocking(Files.createTempDirectory("meter-reading-repository"))
     )(
-      directory => {
+    directory => {
         IO.blocking {
           Files.walk(directory)
-            .sorted(Comparator.reverseOrder[Path]())
-            .map(_.toFile)
-            .forEach(file => file.delete())
+          .sorted(Comparator.reverseOrder[Path]())
+          .map(_.toFile)
+          .forEach(file => file.delete())
         }
       })
 
@@ -31,12 +36,12 @@ class FileMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec with
 
   "repository" - {
     "return None if no file for the meter id can be located" in withTempDirectory { tempDir =>
-      val ret = tempDir.use(path => {
+      val ret: IO[Option[Seq[ElectricityReading]]] = tempDir.use(path => {
         val fileBasedRepository = new FileMeterReadingRepository(path)
         fileBasedRepository.getReadings[IO]("meter-1")
       })
 
-      ret.asserting(_ shouldBe Option.empty)
+      ret.asserting(_ shouldBe Option.empty):IO[scalatest.Assertion]
     }
 
 
@@ -64,53 +69,61 @@ class FileMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec with
     }
   }
 
-  it should "create a new file for a meter given a new reading and no existing file" in {
-    withTempDirectory { tempDir =>
-      val fileBasedRepository = new FileMeterReadingRepository(tempDir)
-      val meter4Path = Files.createFile(tempDir.resolve("meter-4"))
-
+  "repository should create a new file for a meter given a new reading and no existing file" in withTempDirectory { tempDir =>
+    val ret = tempDir.use(path => {
+      val fileBasedRepository = new FileMeterReadingRepository(path)
       val electricityReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
 
-      fileBasedRepository.storeReadings(MeterReadings("meter-4", List(electricityReading)))
-
-      Files.readAllLines(meter4Path).asScala shouldBe Seq("1624289430,1234.56")
-    }
+      for {
+               meter4Path <- IO.blocking(Files.createFile(path.resolve("meter-4")))
+                 _ <- fileBasedRepository.storeReadings[IO](MeterReadings("meter-4", List(electricityReading)))
+                 lines <- IO.blocking(Files.readAllLines(meter4Path).asScala)
+      } yield lines
+    })
+    ret.asserting(_ shouldBe Seq("1624289430,1234.56"))
   }
 
-  it should "append to a file for a given meter given a new reading and an existing file" in {
-    withTempDirectory { tempDir =>
-      val fileBasedRepository = new FileMeterReadingRepository(tempDir)
-      val meter5Path = Files.createFile(tempDir.resolve("meter-5"))
 
-      val electricityReadings = Seq(ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56)), ElectricityReading(Instant.ofEpochSecond(1624375589), Kilowatts(98.76)))
+  "append to a file for a given meter given a new reading and an existing file" in withTempDirectory { tempDir =>
 
-      Files.writeString(meter5Path, "1624289430,1234.56") // append first reading
+    val electricityReadings = Seq(
+      ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56)),
+      ElectricityReading(Instant.ofEpochSecond(1624375589), Kilowatts(98.76))
+    )
 
-      fileBasedRepository.storeReadings(MeterReadings("meter-5", electricityReadings.tail.toList))
+    tempDir.use (path => {
+      val fileBasedRepository = new FileMeterReadingRepository(path)
 
-      fileBasedRepository.getReadings("meter-5") shouldBe Some(electricityReadings)
-    }
+      for {
+        meter5Path <- IO.blocking{ Files.createFile(path.resolve("meter-5"))}
+        _ <- IO.blocking { Files.writeString(meter5Path, "1624289430,1234.56") }   // append first reading
+        _ <- fileBasedRepository.storeReadings[IO](MeterReadings("meter-5", electricityReadings.tail.toList))
+        readings <- fileBasedRepository.getReadings[IO]("meter-5")
+      } yield readings
+    })
+    .asserting(_ shouldBe Some(electricityReadings))
+
   }
 
-  "the line parser" should "parse a string representing a line to an electricity reading" in {
-    val input = "1624289430,1234.56"
-    val expectedElectrityReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
-
-    FileMeterReadingRepository.parseLine(input) shouldBe expectedElectrityReading
-  }
-
-  "the line serializer" should "serialize an electricity reading to a string" in {
-    val expectedSerializedForm = "1624289430,1234.56"
-    val reading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
-
-    FileMeterReadingRepository.toLine(reading) shouldBe expectedSerializedForm
-  }
-
-  it should "convert power readings to kW" in {
-    val expectedSerializedForm = "1624289430,1234.56"
-    val reading = ElectricityReading(Instant.ofEpochSecond(1624289430), Watts(1234.56 * 1000))
-
-    FileMeterReadingRepository.toLine(reading) shouldBe expectedSerializedForm
-  }
+//  "the line parser" should "parse a string representing a line to an electricity reading" in {
+//    val input = "1624289430,1234.56"
+//    val expectedElectrityReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
+//
+//    FileMeterReadingRepository.parseLine(input) shouldBe expectedElectrityReading
+//  }
+//
+//  "the line serializer" should "serialize an electricity reading to a string" in {
+//    val expectedSerializedForm = "1624289430,1234.56"
+//    val reading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
+//
+//    FileMeterReadingRepository.toLine(reading) shouldBe expectedSerializedForm
+//  }
+//
+//  it should "convert power readings to kW" in {
+//    val expectedSerializedForm = "1624289430,1234.56"
+//    val reading = ElectricityReading(Instant.ofEpochSecond(1624289430), Watts(1234.56 * 1000))
+//
+//    FileMeterReadingRepository.toLine(reading) shouldBe expectedSerializedForm
+//  }
 
 }
