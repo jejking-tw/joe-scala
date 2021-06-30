@@ -3,11 +3,15 @@ package com.tw.energy
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.tw.energy.controller.{MeterReadingController, PricePlanComparatorController}
+import com.tw.energy.repository.FileMeterReadingRepository
 import com.tw.energy.service.{AccountService, MeterReadingService, PricePlanService}
+
+import java.nio.file.{Files, Paths}
 
 
 class JOIEnergyApplication {
-  val meterReadingService = new MeterReadingService(Configuration.generateReadingsMap())
+  val meterReadingRepository = new FileMeterReadingRepository(Files.createTempDirectory("meter-reading-repository"))
+  val meterReadingService = new MeterReadingService(Configuration.generateReadingsMap(), meterReadingRepository)
   val meterReadingController = new MeterReadingController(meterReadingService)
 
   val accountService = new AccountService(Configuration.smartMeterToPricePlanAccounts)
