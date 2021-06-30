@@ -9,7 +9,6 @@ import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{Kilowatts, Watts}
 
-import java.io.File.TempDirectory
 import java.nio.file.{Files, Path}
 import java.time.Instant
 import java.util.Comparator
