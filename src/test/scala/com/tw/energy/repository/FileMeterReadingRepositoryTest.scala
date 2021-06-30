@@ -86,23 +86,22 @@ class FileMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec with
 
   "append to a file for a given meter given a new reading and an existing file" in withTempDirectory { tempDir =>
 
-    val electricityReadings = Seq(
-      ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56)),
-      ElectricityReading(Instant.ofEpochSecond(1624375589), Kilowatts(98.76))
-    )
+    val existingReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
+    val newReading = ElectricityReading(Instant.ofEpochSecond(1624375589), Kilowatts(98.76))
 
     tempDir.use (path => {
       val fileBasedRepository = new FileMeterReadingRepository(path)
-
       for {
         meter5Path <- IO.blocking{ Files.createFile(path.resolve("meter-5"))}
-        _ <- IO.blocking { Files.writeString(meter5Path, "1624289430,1234.56") }   // append first reading
-        _ <- fileBasedRepository.storeReadings[IO](MeterReadings("meter-5", electricityReadings.tail.toList))
+        _ <- IO.blocking { Files.writeString(meter5Path, "1624289430,1234.56") }   // from existingReadingValues
+        _ <- fileBasedRepository.storeReadings[IO](MeterReadings("meter-5", List(newReading)))
         readings <- fileBasedRepository.getReadings[IO]("meter-5")
       } yield readings
     })
-    .asserting(_ shouldBe Some(electricityReadings))
-
+    .asserting(_ shouldBe Some(Seq(
+      existingReading,
+      newReading
+    )))
   }
 
 //  "the line parser" should "parse a string representing a line to an electricity reading" in {
