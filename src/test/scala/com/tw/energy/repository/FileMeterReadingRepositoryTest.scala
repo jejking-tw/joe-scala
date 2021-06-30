@@ -7,7 +7,7 @@ import org.scalatest
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
-import squants.energy.Kilowatts
+import squants.energy.{Kilowatts, Watts}
 
 import java.io.File.TempDirectory
 import java.nio.file.{Files, Path}
@@ -104,25 +104,25 @@ class FileMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec with
     )))
   }
 
-//  "the line parser" should "parse a string representing a line to an electricity reading" in {
-//    val input = "1624289430,1234.56"
-//    val expectedElectrityReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
-//
-//    FileMeterReadingRepository.parseLine(input) shouldBe expectedElectrityReading
-//  }
-//
-//  "the line serializer" should "serialize an electricity reading to a string" in {
-//    val expectedSerializedForm = "1624289430,1234.56"
-//    val reading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
-//
-//    FileMeterReadingRepository.toLine(reading) shouldBe expectedSerializedForm
-//  }
-//
-//  it should "convert power readings to kW" in {
-//    val expectedSerializedForm = "1624289430,1234.56"
-//    val reading = ElectricityReading(Instant.ofEpochSecond(1624289430), Watts(1234.56 * 1000))
-//
-//    FileMeterReadingRepository.toLine(reading) shouldBe expectedSerializedForm
-//  }
+  "the line parser should parse a string representing a line to an electricity reading" in {
+    val input = "1624289430,1234.56"
+    val expectedElectricityReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
+
+    FileMeterReadingRepository.parseLine(input) shouldBe expectedElectricityReading
+  }
+
+  "the line serializer should serialize an electricity reading to a string" in {
+    val reading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
+
+    val expectedSerializedForm = "1624289430,1234.56"
+    FileMeterReadingRepository.toLine(reading) shouldBe expectedSerializedForm
+  }
+
+  "the line serializer converts power readings to kW" in {
+    val reading = ElectricityReading(Instant.ofEpochSecond(1624289430), Watts(1234.56 * 1000))
+
+    val expectedSerializedForm = "1624289430,1234.56"
+    FileMeterReadingRepository.toLine(reading) shouldBe expectedSerializedForm
+  }
 
 }
