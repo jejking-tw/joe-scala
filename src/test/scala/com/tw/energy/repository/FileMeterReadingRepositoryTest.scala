@@ -9,7 +9,7 @@ import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{Kilowatts, Watts}
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, StandardOpenOption}
 import java.time.Instant
 import java.util.Comparator
 import scala.jdk.CollectionConverters._
@@ -61,7 +61,6 @@ class FileMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec with
         val meter3Path = Files.createFile(path.resolve("meter-3"))
         Files.write(meter3Path, "1624289430,1234.56".getBytes())
 
-
         fileBasedRepository.getReadings[IO]("meter-3")
       })
       ret.asserting(_ shouldBe Some(Seq(expectedElectrityReading)))
@@ -74,7 +73,7 @@ class FileMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec with
       val electricityReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
 
       for {
-               meter4Path <- IO.blocking(Files.createFile(path.resolve("meter-4")))
+               meter4Path <- IO.blocking(path.resolve("meter-4"))
                  _ <- fileBasedRepository.storeReadings[IO](MeterReadings("meter-4", List(electricityReading)))
                  lines <- IO.blocking(Files.readAllLines(meter4Path).asScala)
       } yield lines
@@ -92,7 +91,7 @@ class FileMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec with
       val fileBasedRepository = new FileMeterReadingRepository(path)
       for {
         meter5Path <- IO.blocking{ Files.createFile(path.resolve("meter-5"))}
-        _ <- IO.blocking { Files.writeString(meter5Path, "1624289430,1234.56") }   // from existingReadingValues
+        _ <- IO.blocking { Files.write(meter5Path, List("1624289430,1234.56").asJava, StandardOpenOption.APPEND) }
         _ <- fileBasedRepository.storeReadings[IO](MeterReadings("meter-5", List(newReading)))
         readings <- fileBasedRepository.getReadings[IO]("meter-5")
       } yield readings

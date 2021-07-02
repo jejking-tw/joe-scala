@@ -5,6 +5,7 @@ import akka.http.scaladsl.model.{HttpEntity, MediaTypes, StatusCodes}
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.tw.energy.domain.ElectricityReading
+import com.tw.energy.repository.InMemoryMeterReadingRepository
 import com.tw.energy.service.MeterReadingService
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -20,7 +21,7 @@ class MeterReadingControllerTest extends AnyFlatSpec with Matchers with Scalates
 
 
   "GET /readings/read/<meterId>" should "be answered with meterReadings for valid meterId" in {
-    val service = new MeterReadingService(Map(smartMeterId -> List(ElectricityReading(Instant.parse(time), reading))))
+    val service = new MeterReadingService(new InMemoryMeterReadingRepository(Map(smartMeterId -> List(ElectricityReading(Instant.parse(time), reading)))))
     val controller = new MeterReadingController(service)
 
     Get("/readings/read/validId") ~> controller.routes ~> check {
@@ -30,7 +31,7 @@ class MeterReadingControllerTest extends AnyFlatSpec with Matchers with Scalates
   }
 
   "GET /readings/read/<meterId>" should "be answered with NotFound for unknown meterId" in {
-    val service = new MeterReadingService(Map())
+    val service = new MeterReadingService(new InMemoryMeterReadingRepository())
     val controller = new MeterReadingController(service)
 
     Get("/readings/read/invalidId") ~> controller.routes ~> check {
@@ -39,7 +40,7 @@ class MeterReadingControllerTest extends AnyFlatSpec with Matchers with Scalates
   }
 
   "POST /readings/store" should "store readings" in {
-    val service = new MeterReadingService(Map())
+    val service = new MeterReadingService(new InMemoryMeterReadingRepository())
     val controller = new MeterReadingController(service)
 
     val request = Post("/readings/store", HttpEntity(MediaTypes.`application/json`, jsonMeterReadings))
@@ -54,7 +55,7 @@ class MeterReadingControllerTest extends AnyFlatSpec with Matchers with Scalates
   }
 
   "POST /readings/store" should "fail if request is malformed" in {
-    val service = new MeterReadingService(Map())
+    val service = new MeterReadingService(new InMemoryMeterReadingRepository())
     val controller = new MeterReadingController(service)
 
     val jsonMeterReadings = s"""{"electricityReadings":$jsonElectricityReadings}"""

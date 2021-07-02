@@ -12,26 +12,7 @@ import java.time.Instant
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
-class InMemoryMeterReadingRepository extends MeterReadingRepository {
 
-  private val map = new mutable.HashMap[SmartMeterId, Seq[ElectricityReading]]
-
-  override def getReadings[F[_] : Sync](smartMeterId: SmartMeterId): F[Option[Seq[ElectricityReading]]] = {
-    Sync[F].delay {
-      map.get(smartMeterId)
-    }
-  }
-
-  override def storeReadings[F[_] : Sync](meterReadings: MeterReadings): F[Unit] = {
-    Sync[F].delay {
-      val updatedListOfElectricityReadings = map.get(meterReadings.smartMeterId) match {
-        case Some(existingReadings: Seq[ElectricityReading]) => existingReadings ++  meterReadings.electricityReadings
-        case None => meterReadings.electricityReadings
-      }
-      map.put(meterReadings.smartMeterId, updatedListOfElectricityReadings)
-    }
-  }
-}
 
 class FileMeterReadingRepository(private val path: Path) extends MeterReadingRepository {
 
@@ -53,19 +34,11 @@ class FileMeterReadingRepository(private val path: Path) extends MeterReadingRep
   // and if the parsing fails.... what then?
 
   override def storeReadings[F[_]:Sync](meterReadings: MeterReadings): F[Unit] = {
-    def fileHasBeenWrittenToAlready(meterFilePath: Path) = {
-      Files.size(meterFilePath) > 0
-    }
-
-    def appendNewLine(meterFilePath: Path) = {
-      Files.writeString(meterFilePath, System.lineSeparator(), StandardOpenOption.APPEND)
-    }
-
     Sync[F].delay {
       val meterFilePath = path.resolve(meterReadings.smartMeterId)
       val lines = meterReadings.electricityReadings.map(toLine(_))
-      if (fileHasBeenWrittenToAlready(meterFilePath)) {
-        appendNewLine(meterFilePath)
+      if (!Files.exists(meterFilePath)) {
+        Files.createFile(meterFilePath)
       }
       Files.write(meterFilePath, lines.asJava, StandardOpenOption.APPEND)
       ()

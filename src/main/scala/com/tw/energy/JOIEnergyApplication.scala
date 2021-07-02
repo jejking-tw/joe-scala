@@ -10,8 +10,8 @@ import java.nio.file.{Files, Paths}
 
 
 class JOIEnergyApplication {
-  val meterReadingRepository = new FileMeterReadingRepository(Files.createTempDirectory("meter-reading-repository"))
-  val meterReadingService = new MeterReadingService(Configuration.generateReadingsMap(), meterReadingRepository)
+  val meterReadingRepository = new FileMeterReadingRepository(Files.createTempDirectory("joe-repo"))
+  val meterReadingService = new MeterReadingService(meterReadingRepository)
   val meterReadingController = new MeterReadingController(meterReadingService)
 
   val accountService = new AccountService(Configuration.smartMeterToPricePlanAccounts)

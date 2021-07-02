@@ -4,6 +4,7 @@ import java.time.Instant
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.tw.energy.domain.{ElectricityReading, MeterReadings, PricePlan, PricePlanCosts, SquantsJsonSupport}
+import com.tw.energy.repository.InMemoryMeterReadingRepository
 import com.tw.energy.service.{AccountService, MeterReadingService, PricePlanService}
 import io.circe.generic.auto._
 import io.circe.syntax._
@@ -23,7 +24,7 @@ class PricePlanComparatorControllerTest extends AnyFlatSpec with Matchers with S
   val pricePlan3 = PricePlan(pricePlan3Id, null, EUR(2)/KilowattHours(1), null)
 
   trait Setup {
-    val meterReadingService = new MeterReadingService()
+    val meterReadingService = new MeterReadingService(new InMemoryMeterReadingRepository())
     val pricePlanService = new PricePlanService(List(pricePlan1, pricePlan2, pricePlan3), meterReadingService)
     val accountService = new AccountService(Map(smartMeterId -> pricePlan1Id))
     val controller = new PricePlanComparatorController(pricePlanService, accountService)
