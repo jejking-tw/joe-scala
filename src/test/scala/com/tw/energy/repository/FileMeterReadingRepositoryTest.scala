@@ -4,7 +4,7 @@ import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.effect.{IO, Resource}
 import com.tw.energy.domain.{ElectricityReading, MeterReadings}
 import org.scalatest
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{Assertion, BeforeAndAfterAll}
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{Kilowatts, Watts}
@@ -12,26 +12,13 @@ import squants.energy.{Kilowatts, Watts}
 import java.nio.file.{Files, Path, StandardOpenOption}
 import java.time.Instant
 import java.util.Comparator
+import scala.concurrent.Future
 import scala.jdk.CollectionConverters._
 
 class FileMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec with Matchers with BeforeAndAfterAll {
 
-  def withTempDirectory[F](testCode: Resource[IO, Path] => F): F = {
 
-    val tempDirResource = Resource.make(
-    IO.blocking(Files.createTempDirectory("meter-reading-repository"))
-    )(
-    directory => {
-        IO.blocking {
-          Files.walk(directory)
-          .sorted(Comparator.reverseOrder[Path]())
-          .map(_.toFile)
-          .forEach(file => file.delete())
-        }
-      })
-
-    testCode(tempDirResource)
-  }
+  import TempDirectoryUtil._
 
   "repository" - {
     "return None if no file for the meter id can be located" in withTempDirectory { tempDir =>

@@ -9,7 +9,6 @@ import squants.energy.Kilowatts
 
 import java.nio.file.{Files, Path, StandardOpenOption}
 import java.time.Instant
-import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 

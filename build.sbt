@@ -26,6 +26,11 @@ libraryDependencies += "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVers
 libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test //required by akka-http-testkit
 libraryDependencies += "org.typelevel"  %% "squants"  % "1.6.0"
 
+libraryDependencies += "co.fs2" %% "fs2-core" % "3.0.6"
+libraryDependencies += "co.fs2" %% "fs2-io" % "3.0.6"
+libraryDependencies += "co.fs2" %% "fs2-reactive-streams" % "3.0.6"
+
+
 libraryDependencies += "org.typelevel" %% "cats-effect" % "3.1.1"
 libraryDependencies += "org.typelevel" % "cats-effect-testing-scalatest_2.13" % "1.1.1" % Test
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
