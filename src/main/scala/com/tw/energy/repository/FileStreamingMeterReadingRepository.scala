@@ -6,11 +6,11 @@ import com.tw.energy.repository.FileLineFormat.{parseLine, toLine}
 import fs2.{Pipe, Stream, text}
 import fs2.io.file.Files
 
-import java.nio.file.{NoSuchFileException, Path, Paths}
+import java.nio.file.{NoSuchFileException, Path, Paths, StandardOpenOption}
 
 class FileStreamingMeterReadingRepository(private val path: Path) extends StreamingMeterReadingRepository {
 
-  override def storeMeterReadings[F[_]: Files : Concurrent : Async](smartMeterId: SmartMeterId, electricityReadings: fs2.Stream[F, ElectricityReading]): Unit = {
+  override def storeMeterReadings[F[_]: Files : Concurrent : Async](smartMeterId: SmartMeterId, electricityReadings: fs2.Stream[F, ElectricityReading]): F[Unit] = {
 
     // open a stream to the file representing the meter reading store
     val meterFileSink = meterReadingsFileSink(smartMeterId)
@@ -29,7 +29,7 @@ class FileStreamingMeterReadingRepository(private val path: Path) extends Stream
 
   private[this] def meterReadingsFileSink[F[_]: Files : Concurrent : Async](smartMeterId: SmartMeterId) = {
     val path: Path = meterFilePath(smartMeterId)
-    Files[F].writeAll(path)
+    Files[F].writeAll(path, Seq(StandardOpenOption.APPEND, StandardOpenOption.CREATE))
   }
 
   override def getMeterReadings[F[_] : Files : Concurrent : Async](smartMeterId: SmartMeterId): Stream[F, ElectricityReading] = {

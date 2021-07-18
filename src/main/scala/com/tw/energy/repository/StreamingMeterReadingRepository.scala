@@ -8,7 +8,7 @@ import fs2.io.file.Files
 
 trait StreamingMeterReadingRepository {
 
-  def storeMeterReadings[F[_]: Files : Concurrent : Async](smartMeterId: SmartMeterId, electricityReadings: Stream[F, ElectricityReading]): Unit
+  def storeMeterReadings[F[_]: Files : Concurrent : Async](smartMeterId: SmartMeterId, electricityReadings: Stream[F, ElectricityReading]): F[Unit]
 
   def getMeterReadings[F[_]: Files : Concurrent : Async](smartMeterId: SmartMeterId): Stream[F, ElectricityReading]
 

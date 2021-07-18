@@ -5,15 +5,16 @@ import cats.effect.testing.scalatest.AsyncIOSpec
 import com.tw.energy.domain.ElectricityReading
 import com.tw.energy.repository.FileLineFormat.toLine
 import com.tw.energy.repository.FileRepositoryTestUtil.withTempDirectory
-import org.scalatest
+import fs2.Stream
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import squants.energy.Kilowatts
 
-import java.nio.file.Files
+import java.nio.file.Files._
+import java.nio.file.{Files, StandardOpenOption}
 import java.time.Instant
-import scala.jdk.CollectionConverters.IterableHasAsJava
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, IterableHasAsJava}
 
 class StreamingMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec with Matchers with BeforeAndAfterAll {
 
@@ -31,7 +32,7 @@ class StreamingMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec
       "should return an empty stream if meter file exists but is empty" in withTempDirectory { tempDir =>
         val ret: IO[List[ElectricityReading]] = tempDir.use(path => {
           val streamingMeterReadingRepository = new FileStreamingMeterReadingRepository(path)
-          Files.createFile(path.resolve("meter-2"))
+          createFile(path.resolve("meter-2"))
           streamingMeterReadingRepository.getMeterReadings[IO]("meter-2").compile.toList
         })
 
@@ -42,8 +43,8 @@ class StreamingMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec
         val expectedElectricityReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
         val ret = tempDir.use(path => {
           val streamingMeterReadingRepository = new FileStreamingMeterReadingRepository(path)
-          val meter3Path = Files.createFile(path.resolve("meter-3"))
-          Files.write(meter3Path, "1624289430,1234.56".getBytes())
+          val meter3Path = createFile(path.resolve("meter-3"))
+          write(meter3Path, "1624289430,1234.56".getBytes())
 
           streamingMeterReadingRepository.getMeterReadings[IO]("meter-3").compile.toList
         })
@@ -58,8 +59,8 @@ class StreamingMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec
 
         val ret = tempDir.use(path => {
           val streamingMeterReadingRepository = new FileStreamingMeterReadingRepository(path)
-          val meter4Path = Files.createFile(path.resolve("meter-4"))
-          Files.write(meter4Path, expectedReadings.toList.map(toLine(_)).asJava)
+          val meter4Path = createFile(path.resolve("meter-4"))
+          write(meter4Path, expectedReadings.toList.map(toLine(_)).asJava)
 
           streamingMeterReadingRepository.getMeterReadings[IO]("meter-4").compile.toList
         })
@@ -70,7 +71,39 @@ class StreamingMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec
     }
 
     "(writing)" - {
-      
+      "should create a new file for a meter given a new reading and no pre-existing file" in withTempDirectory { tempDir =>
+        val ret = tempDir.use(path => {
+          val electricityReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
+          val streamingMeterReadingRepository = new FileStreamingMeterReadingRepository(path)
+
+          for {
+            meter5Path <- IO.blocking(path.resolve("meter-5"))
+            _ <- streamingMeterReadingRepository.storeMeterReadings[IO]("meter-5", Stream.emit(electricityReading))
+            lines <- IO.blocking(readAllLines(meter5Path))
+          } yield lines.asScala.toList
+        })
+        ret.asserting(_ shouldBe Seq("1624289430,1234.56"))
+      }
+
+      "append to a file for a given meter given a new reading and an existing file" in withTempDirectory { tempDir =>
+
+        val existingReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
+        val newReading = ElectricityReading(Instant.ofEpochSecond(1624375589), Kilowatts(98.76))
+
+        tempDir.use(path => {
+          val streamingMeterReadingRepository = new FileStreamingMeterReadingRepository(path)
+          for {
+            meter6Path <- IO.blocking {
+              Files.createFile(path.resolve("meter-6"))
+            }
+            _ <- IO.blocking {
+              Files.write(meter6Path, List("1624289430,1234.56").asJava, StandardOpenOption.APPEND)
+            }
+            _ <- streamingMeterReadingRepository.storeMeterReadings[IO]("meter-6", Stream.emit(newReading))
+            lines <- IO.blocking(readAllLines(meter6Path))
+          } yield lines.asScala.toList
+        }).asserting(_ shouldBe Seq(existingReading, newReading).map(toLine(_)))
+      }
     }
 
 
