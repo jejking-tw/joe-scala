@@ -1,24 +1,22 @@
 package com.tw.energy.repository
 
 import cats.effect.testing.scalatest.AsyncIOSpec
-import cats.effect.{IO, Resource}
+import cats.effect.IO
 import com.tw.energy.domain.{ElectricityReading, MeterReadings}
 import org.scalatest
-import org.scalatest.{Assertion, BeforeAndAfterAll}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
-import squants.energy.{Kilowatts, Watts}
+import squants.energy.Kilowatts
 
-import java.nio.file.{Files, Path, StandardOpenOption}
+import java.nio.file.{Files, StandardOpenOption}
 import java.time.Instant
-import java.util.Comparator
-import scala.concurrent.Future
 import scala.jdk.CollectionConverters._
 
 class FileMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec with Matchers with BeforeAndAfterAll {
 
 
-  import TempDirectoryUtil._
+  import FileRepositoryTestUtil._
 
   "repository" - {
     "return None if no file for the meter id can be located" in withTempDirectory { tempDir =>
@@ -87,27 +85,6 @@ class FileMeterReadingRepositoryTest extends AsyncFreeSpec with AsyncIOSpec with
       existingReading,
       newReading
     )))
-  }
-
-  "the line parser should parse a string representing a line to an electricity reading" in {
-    val input = "1624289430,1234.56"
-    val expectedElectricityReading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
-
-    FileMeterReadingRepository.parseLine(input) shouldBe expectedElectricityReading
-  }
-
-  "the line serializer should serialize an electricity reading to a string" in {
-    val reading = ElectricityReading(Instant.ofEpochSecond(1624289430), Kilowatts(1234.56))
-
-    val expectedSerializedForm = "1624289430,1234.56"
-    FileMeterReadingRepository.toLine(reading) shouldBe expectedSerializedForm
-  }
-
-  "the line serializer converts power readings to kW" in {
-    val reading = ElectricityReading(Instant.ofEpochSecond(1624289430), Watts(1234.56 * 1000))
-
-    val expectedSerializedForm = "1624289430,1234.56"
-    FileMeterReadingRepository.toLine(reading) shouldBe expectedSerializedForm
   }
 
 }

@@ -1,17 +1,11 @@
 package com.tw.energy.repository
-import cats.effect.IO
 import cats.effect.kernel.Sync
-import cats.effect.unsafe.implicits.global
 import com.tw.energy.domain.{ElectricityReading, MeterReadings}
 import com.tw.energy.domain.StringTypes.SmartMeterId
-import com.tw.energy.repository.FileMeterReadingRepository.{parseLine, toLine}
-import squants.energy.Kilowatts
+import com.tw.energy.repository.FileLineFormat.{parseLine, toLine}
 
 import java.nio.file.{Files, Path, StandardOpenOption}
-import java.time.Instant
 import scala.jdk.CollectionConverters._
-
-
 
 class FileMeterReadingRepository(private val path: Path) extends MeterReadingRepository {
 
@@ -44,20 +38,5 @@ class FileMeterReadingRepository(private val path: Path) extends MeterReadingRep
     }
   }
 
-
-
 }
 
-object FileMeterReadingRepository {
-
-  def toLine(reading: ElectricityReading): String = s"${reading.time.getEpochSecond},${reading.reading.toKilowatts}"
-
-
-  val line = raw"(.+),(.+)".r
-
-  def parseLine(input: String): ElectricityReading = {
-    input match {
-      case line (instant, power) => ElectricityReading(Instant.ofEpochSecond(instant.toLong), Kilowatts(power.toDouble))
-    }
-  }
-}

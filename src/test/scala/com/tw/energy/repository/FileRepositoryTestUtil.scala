@@ -5,7 +5,7 @@ import cats.effect.{IO, Resource}
 import java.nio.file.{Files, Path}
 import java.util.Comparator
 
-object TempDirectoryUtil {
+object FileRepositoryTestUtil {
 
   def withTempDirectory[F](testCode: Resource[IO, Path] => F): F = {
 
